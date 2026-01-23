@@ -2,6 +2,7 @@
   lib,
   stdenv,
   fetchFromGitHub,
+  makeWrapper,
 
   nixosTests,
   alsa-lib,
@@ -49,6 +50,7 @@
   vulkan-memory-allocator,
   xbyak,
   xxHash,
+  zenity,
   zlib-ng,
   zydis,
   nix-update-script,
@@ -134,6 +136,7 @@ stdenv.mkDerivation (finalAttrs: {
   nativeBuildInputs = [
     cmake
     pkg-config
+    makeWrapper
   ];
 
   cmakeFlags = [
@@ -151,6 +154,9 @@ stdenv.mkDerivation (finalAttrs: {
     install -Dm644 $src/.github/shadps4.png $out/share/icons/hicolor/512x512/apps/net.shadps4.shadPS4.png
     install -Dm644 -t $out/share/applications $src/dist/net.shadps4.shadPS4.desktop
     install -Dm644 -t $out/share/metainfo $src/dist/net.shadps4.shadPS4.metainfo.xml
+
+    wrapProgram $out/bin/shadps4 \
+      --prefix PATH : ${lib.makeBinPath [ zenity ]}
 
     runHook postInstall
   '';
