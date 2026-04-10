@@ -50,6 +50,7 @@
   vulkan-memory-allocator,
   xbyak,
   xxhash,
+  zenity,
   zlib-ng,
   zydis,
   nix-update-script,
@@ -161,7 +162,8 @@ gcc14Stdenv.mkDerivation (finalAttrs: {
           libpulseaudio
           pipewire
         ]
-      }
+      } \
+      --prefix PATH : ${lib.makeBinPath [ zenity ]}
 
     runHook postInstall
   '';
