@@ -27,4 +27,9 @@
     name = "request-key-helper";
     patch = ./request-key-helper.patch;
   };
+
+  amdgpu_regression_fix = {
+    name = "amdgpu-regression-fix";
+    patch = ./amdgpu-regression-fix.patch;
+  };
 }
