@@ -1,0 +1,38 @@
+diff --git a/kernel/time/clockevents.c b/kernel/time/clockevents.c
+index b4d730604972..5e22697b098d 100644
+--- a/kernel/time/clockevents.c
++++ b/kernel/time/clockevents.c
+@@ -94,6 +94,9 @@ static int __clockevents_switch_state(struct clock_event_device *dev,
+ 	if (dev->features & CLOCK_EVT_FEAT_DUMMY)
+ 		return 0;
+ 
++	/* On state transitions clear the forced flag unconditionally */
++	dev->next_event_forced = 0;
++
+ 	/* Transition with new state-specific callbacks */
+ 	switch (state) {
+ 	case CLOCK_EVT_STATE_DETACHED:
+@@ -366,8 +369,10 @@ int clockevents_program_event(struct clock_event_device *dev, ktime_t expires, b
+ 	if (delta > (int64_t)dev->min_delta_ns) {
+ 		delta = min(delta, (int64_t) dev->max_delta_ns);
+ 		clc = ((unsigned long long) delta * dev->mult) >> dev->shift;
+-		if (!dev->set_next_event((unsigned long) clc, dev))
++		if (!dev->set_next_event((unsigned long) clc, dev)) {
++			dev->next_event_forced = 0;
+ 			return 0;
++		}
+ 	}
+ 
+ 	if (dev->next_event_forced)
+diff --git a/kernel/time/tick-broadcast.c b/kernel/time/tick-broadcast.c
+index 7e57fa31ee26..115e0bf01276 100644
+--- a/kernel/time/tick-broadcast.c
++++ b/kernel/time/tick-broadcast.c
+@@ -108,6 +108,7 @@ static struct clock_event_device *tick_get_oneshot_wakeup_device(int cpu)
+ 
+ static void tick_oneshot_wakeup_handler(struct clock_event_device *wd)
+ {
++	wd->next_event_forced = 0;
+ 	/*
+ 	 * If we woke up early and the tick was reprogrammed in the
+ 	 * meantime then this may be spurious but harmless.
