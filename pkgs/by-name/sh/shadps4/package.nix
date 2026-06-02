@@ -48,6 +48,7 @@
   vulkan-memory-allocator,
   xbyak,
   xxhash,
+  zenity,
   zlib,
   nix-update-script,
 }:
@@ -162,7 +163,8 @@ stdenv.mkDerivation (finalAttrs: {
           libpulseaudio
           pipewire
         ]
-      }
+      } \
+      --prefix PATH : ${lib.makeBinPath [ zenity ]}
   '';
 
   runtimeDependencies = [
