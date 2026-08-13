@@ -54,6 +54,7 @@
   xbyak,
   xxhash,
   zarchive,
+  zenity,
   zstd,
   zlib,
   nix-update-script,
@@ -195,7 +196,8 @@ clangStdenv.mkDerivation (finalAttrs: {
           libpulseaudio
           pipewire
         ]
-      }
+      } \
+      --prefix PATH : ${lib.makeBinPath [ zenity ]}
   '';
 
   runtimeDependencies = [
