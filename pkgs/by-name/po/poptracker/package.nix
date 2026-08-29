@@ -64,12 +64,14 @@ stdenv.mkDerivation (finalAttrs: {
     runHook preInstall
     install -m555 -Dt $out/bin build/*/poptracker
     install -m444 -Dt $out/share/poptracker assets/*
-    wrapProgram $out/bin/poptracker --prefix PATH : ${
-      lib.makeBinPath [
-        which
-        kdePackages.kdialog
-      ]
-    }
+    ${lib.optionalString stdenv.hostPlatform.isLinux ''
+      wrapProgram $out/bin/poptracker --prefix PATH : ${
+        lib.makeBinPath [
+          which
+          kdePackages.kdialog
+        ]
+      }
+    ''}
     mkdir -p $out/share/icons/hicolor/{64x64,512x512}/apps
     ln -s $out/share/poptracker/icon.png  $out/share/icons/hicolor/64x64/apps/poptracker.png
     ln -s $out/share/poptracker/icon512.png  $out/share/icons/hicolor/512x512/apps/poptracker.png
