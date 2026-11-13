@@ -32,6 +32,8 @@
   makeShellWrapper,
   gtk3,
   brotli,
+  asar,
+  jq,
   addDriverRunpath,
   fetchurl,
   makeDesktopItem,
@@ -164,6 +166,8 @@ stdenv.mkDerivation (finalAttrs: {
   nativeBuildInputs = [
     makeShellWrapper
     brotli
+    asar
+    jq
   ]
   ++ lib.optionals (!useFHSEnv) [
     autoPatchelfHook
@@ -213,6 +217,21 @@ stdenv.mkDerivation (finalAttrs: {
     # follow the same format with module contents under `files/`
     brotli -d < $src | tar xf - --strip-components=1 -C $out/opt/${binaryName}
     chmod +x $out/opt/${binaryName}/${binaryName}
+
+    # Discord's newer bootstraps no longer carry the legacy module updater that
+    # put the modules directory on Node's search path, and the native updater
+    # that replaced it does not start from the store. Register the bundled
+    # modules from an entry point that runs ahead of Discord's own; the
+    # renderer's native module check reads the same search path.
+    # See https://github.com/NixOS/nixpkgs/issues/587050
+    asar extract $out/opt/${binaryName}/resources/app.asar bootstrap
+    main=$(jq -er .main bootstrap/package.json)
+    substitute ${./register-modules.js} bootstrap/nix-register-modules.js --subst-var main
+    jq '.main = "nix-register-modules.js"' bootstrap/package.json > package.json
+    mv package.json bootstrap/package.json
+    rm $out/opt/${binaryName}/resources/app.asar
+    asar pack bootstrap $out/opt/${binaryName}/resources/app.asar
+    rm -r bootstrap
 
     # The module directory layout must match what Discord's node runtime
     # expects: modules/<name>/ (the moduleUpdater extracts zips into
