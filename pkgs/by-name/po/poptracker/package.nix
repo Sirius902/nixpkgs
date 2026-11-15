@@ -108,6 +108,6 @@ stdenv.mkDerivation (finalAttrs: {
       pyrox0
     ];
     mainProgram = "poptracker";
-    platforms = lib.platforms.unix;
+    platforms = lib.platforms.linux;
   };
 })
