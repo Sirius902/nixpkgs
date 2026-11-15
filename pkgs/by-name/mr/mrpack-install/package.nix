@@ -5,56 +5,51 @@
   fetchFromGitHub,
   buildPackages,
   installShellFiles,
+  versionCheckHook,
   nix-update-script,
 }:
 
 buildGoModule (finalAttrs: {
   pname = "mrpack-install";
-  version = "0.16.10";
+  version = "0.23.0";
 
   src = fetchFromGitHub {
     owner = "nothub";
     repo = "mrpack-install";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-mTAXFK97t10imdICpg0UI4YLF744oscJqoOIBG5GEkc=";
+    hash = "sha256-VoGUWN1AZRXGl/4MjoC0vNN2saWuOCS++Wl2M4zda+w=";
   };
 
-  vendorHash = "sha256-az+NpP/hCIq2IfO8Bmn/qG3JVypeDljJ0jWg6yT6hks=";
+  vendorHash = "sha256-cmVqOA1rKa7guwW0GEM4TLpreOVh8p7vI/z8SIsxtdI=";
+
+  # Resolving the latest Minecraft version requires network and breaks
+  # installPhase. Move it to `server`, the only command that needs it.
+  postPatch = ''
+    substituteInPlace cmd/server.go \
+      --replace-fail 'cobra.OnInitialize(func() {' \
+        'serverCmd.PreRun = (func(*cobra.Command, []string) {'
+  '';
+
+  excludedPackages = [
+    "e2e"
+    "tools"
+  ];
 
   ldflags = [
     "-s"
-    "-X github.com/nothub/mrpack-install/buildinfo.Version=${finalAttrs.version}"
-    "-X github.com/nothub/mrpack-install/buildinfo.date=1970-01-01T00:00:00Z"
+    "-X github.com/nothub/mrpack-install/internal/buildinfo.version=${finalAttrs.version}"
+    "-X github.com/nothub/mrpack-install/internal/buildinfo.commit=${finalAttrs.src.rev}"
+    "-X github.com/nothub/mrpack-install/internal/buildinfo.date=1970-01-01T00:00:00Z"
+    "-X github.com/nothub/mrpack-install/internal/buildinfo.tool=nixpkgs"
   ];
 
-  checkFlags =
-    let
-      skippedTests = [
-        # Skip tests that require network access
-        "TestFetchMetadata"
-        "TestClient_VersionFromHash"
-        "TestClient_GetDependencies"
-        "TestClient_GetProjectVersions_Count"
-        "TestClient_GetVersion"
-        "TestClient_CheckProjectValidity_Slug"
-        "Test_GetProject_404"
-        "TestClient_GetProjects_Count"
-        "TestClient_GetProjectVersions_Filter_NoResults"
-        "Test_GetProject_Success"
-        "TestClient_CheckProjectValidity_Id"
-        "TestClient_GetLatestGameVersion"
-        "TestClient_GetProjectVersions_Filter_Results"
-        "TestClient_GetProjects_Slug"
-        "TestClient_GetVersions"
-        "TestGetPlayerUuid"
-      ]
-      ++ lib.optionals stdenv.hostPlatform.isDarwin [
-        # /tmp is a symlink to /private/tmp on Darwin, breaking hardcoded path prefix checks
-        "TestPathTraversalAbsolute"
-        "TestPathTraversalRelative"
-      ];
-    in
-    [ "-skip=^${builtins.concatStringsSep "$|^" skippedTests}$" ];
+  # tests serve fixtures from local httptest servers
+  __darwinAllowLocalNetworking = true;
+
+  checkFlags = lib.optionals stdenv.hostPlatform.isDarwin [
+    # sendfile(2) does not work with __darwinAllowLocalNetworking, see NixOS/nix#16632
+    "-skip=^TestFetchMetadata$"
+  ];
 
   nativeBuildInputs = [
     installShellFiles
@@ -71,11 +66,15 @@ buildGoModule (finalAttrs: {
         --zsh <(${mrpack-install} completion zsh)
     '';
 
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = true;
+
   passthru.updateScript = nix-update-script { };
 
   meta = {
     description = "CLI application for installing Minecraft servers and Modrinth modpacks";
     homepage = "https://github.com/nothub/mrpack-install";
+    changelog = "https://github.com/nothub/mrpack-install/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ encode42 ];
     mainProgram = "mrpack-install";
