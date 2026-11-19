@@ -5,7 +5,6 @@
   stdenvNoCC,
   writeTextFile,
   writeShellScript,
-  path,
   bubblewrap,
   coreutils,
   curl,
@@ -143,7 +142,7 @@ lib.makeOverridable (
         bwrap \
           --unshare-all --share-net --clearenv --chdir / --setenv HOME /homeless-shelter \
           --tmpfs /home --bind /tmp /tmp --ro-bind /nix /nix --ro-bind /run /run --proc /proc --dev /dev  \
-          --ro-bind ${toString path} ${toString path} --bind "$MITM_CACHE_CERT_DIR" "$MITM_CACHE_CERT_DIR" \
+          --bind "$MITM_CACHE_CERT_DIR" "$MITM_CACHE_CERT_DIR" \
           ${builtins.concatStringsSep " " (map (x: "--setenv ${x} \"\$${x}\"") keep)} \
           --setenv NIX_BUILD_SHELL ${runtimeShell} ${bwrapFlags} ''${BWRAP_FLAGS:-} \
           -- ${nix}/bin/nix-shell --pure --run ${gradleScript} ${nixShellKeep} ${sourceDrvPath}
